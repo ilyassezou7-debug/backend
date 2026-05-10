@@ -120,7 +120,7 @@ async def create_order(
         "sku": sku_str,
         "quantity": quantity_str,
         "totale price": total,
-        "curency": "dh maroc",
+        "curency": "MAD",
         "status": "",
         
         # Keep detailed info for debugging in the raw JSON payload if needed
