@@ -88,23 +88,40 @@ async def create_order(
     )
 
     # 8. Forward to Google Sheets
-    # The structure expected by the Google Apps Script Webhook
-    # date, orderid, country, name, phone, product, sku, quantity, totale price, curency, status
-    # Note: We send standard JSON, the App Script maps it to these columns
-    product_names = ", ".join([f"{item['quantity']}x {item['product_id']}" for item in validated_items])
+    PRODUCT_MAPPING = {
+        "breath_drops": {"name": "قطرات القرنفل والنعناع", "sku": "BD-001"},
+        "foot_spray": {"name": "بخاخ الشبة وزيت شجرة الشاي", "sku": "FS-002"},
+        "nail_serum": {"name": "سيروم الثوم والخل", "sku": "NS-003"}
+    }
+    
+    product_names_list = []
+    sku_list = []
+    quantity_list = []
+    
+    for item in validated_items:
+        p_info = PRODUCT_MAPPING.get(item["product_id"], {"name": item["product_id"], "sku": "UNKNOWN"})
+        product_names_list.append(p_info["name"])
+        sku_list.append(p_info["sku"])
+        quantity_list.append(str(item["quantity"]))
+        
+    product_names_str = "/".join(product_names_list)
+    sku_str = "/".join(sku_list)
+    quantity_str = "/".join(quantity_list)
+    
+    phone_clean = phone_e164.replace("+", "")
     
     sheet_payload = {
-        "date": order.created_at.isoformat(),
+        "date": order.created_at.strftime("%d/%m/%Y"),
         "orderid": public_id,
-        "country": "MA", # Default to Morocco
+        "country": "maroc",
         "name": order.full_name,
-        "phone": phone_e164,
-        "product": product_names,
-        "sku": product_names,
-        "quantity": sum([item['quantity'] for item in validated_items]),
+        "phone": phone_clean,
+        "product": product_names_str,
+        "sku": sku_str,
+        "quantity": quantity_str,
         "totale price": total,
-        "curency": "MAD",
-        "status": "new",
+        "curency": "dh maroc",
+        "status": "",
         
         # Keep detailed info for debugging in the raw JSON payload if needed
         "detailed_items": validated_items,
