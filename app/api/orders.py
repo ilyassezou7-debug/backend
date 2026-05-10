@@ -88,21 +88,28 @@ async def create_order(
     )
 
     # 8. Forward to Google Sheets
+    # The structure expected by the Google Apps Script Webhook
+    # date, orderid, country, name, phone, product, sku, quantity, totale price, curency, status
+    # Note: We send standard JSON, the App Script maps it to these columns
+    product_names = ", ".join([f"{item['quantity']}x {item['product_id']}" for item in validated_items])
+    
     sheet_payload = {
-        "public_id": public_id,
-        "created_at": order.created_at.isoformat(),
-        "full_name": order.full_name,
-        "phone_e164": phone_e164,
-        "items": validated_items,
-        "subtotal": subtotal,
-        "shipping": shipping,
-        "total": total,
-        "currency": "MAD",
+        "date": order.created_at.isoformat(),
+        "orderid": public_id,
+        "country": "MA", # Default to Morocco
+        "name": order.full_name,
+        "phone": phone_e164,
+        "product": product_names,
+        "sku": product_names,
+        "quantity": sum([item['quantity'] for item in validated_items]),
+        "totale price": total,
+        "curency": "MAD",
         "status": "new",
-        "source": "website",
-        "domain": "atlaspure.shop",
-        "tracking": {**tracking_data, "utm": utm_data},
+        
+        # Keep detailed info for debugging in the raw JSON payload if needed
+        "detailed_items": validated_items,
         "upsell": upsell_data,
+        "tracking": {**tracking_data, "utm": utm_data},
     }
 
     sheet_ok = await send_to_sheets(sheet_payload)
