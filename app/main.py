@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.api.health import router as health_router
 from app.api.orders import router as orders_router
+from app.api.admin import router as admin_router
 
 settings = get_settings()
 
@@ -32,9 +33,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(health_router)
 app.include_router(orders_router)
+app.include_router(admin_router)
