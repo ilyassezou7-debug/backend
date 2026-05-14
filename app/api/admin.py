@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 PRODUCT_NAMES: dict[str, str] = {
-    "breath_drops": "قطرات النفس",
-    "foot_spray": "بخاخ القدمين",
-    "nail_serum": "سيروم الأظافر",
+    "breath_drops": "Breath Drops",
+    "foot_spray": "Foot Spray",
+    "nail_serum": "Nail Serum",
 }
 
 VALID_STATUSES = {
@@ -106,7 +106,7 @@ def _parse_date(value: str | None, default: datetime) -> datetime:
 async def admin_login(body: LoginRequest):
     settings = get_settings()
     if body.username != settings.admin_username or body.password != settings.admin_password:
-        raise HTTPException(status_code=401, detail="بيانات الدخول غير صحيحة")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     token = _make_token(body.username, settings.admin_secret_key)
     logger.info("Admin login: %s", body.username)
     return {"token": token, "username": body.username}
@@ -187,7 +187,7 @@ async def get_metrics(
     # UTM source breakdown
     utm_counts: dict[str, int] = {}
     for o in orders:
-        src = (o.utm_json or {}).get("utm_source") or "مباشر"
+        src = (o.utm_json or {}).get("utm_source") or "Direct"
         utm_counts[src] = utm_counts.get(src, 0) + 1
     top_sources = sorted(
         [{"source": k, "count": v} for k, v in utm_counts.items()],
@@ -320,7 +320,7 @@ async def update_order_status(
     _: str = Depends(require_admin),
 ):
     if body.status not in VALID_STATUSES:
-        raise HTTPException(status_code=422, detail=f"الحالة غير صالحة. الخيارات: {sorted(VALID_STATUSES)}")
+        raise HTTPException(status_code=422, detail=f"Invalid status. Options: {sorted(VALID_STATUSES)}")
 
     result = await db.execute(select(Order).where(Order.public_id == public_id))
     order = result.scalar_one_or_none()
