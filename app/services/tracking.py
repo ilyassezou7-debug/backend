@@ -72,9 +72,11 @@ async def send_meta_purchase(
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.post(url, json=payload)
-            return {"status_code": resp.status_code, "body": resp.json()}
+            body = resp.json()
+            logger.info("Meta CAPI Success: status=%s body=%s", resp.status_code, body)
+            return {"status_code": resp.status_code, "body": body}
     except Exception as e:
-        logger.error("Meta CAPI error: %s", str(e))
+        logger.error("Meta CAPI Error: %s", str(e))
         return {"error": str(e)}
 
 
@@ -87,7 +89,10 @@ async def send_tiktok_purchase(
     tracking: dict,
 ) -> dict:
     settings = get_settings()
-    if not settings.tiktok_pixel_id or not settings.tiktok_access_token:
+    tiktok_pixel = settings.tiktok_pixel_id or "D8506I3C77U73K7PGR40"
+    tiktok_token = settings.tiktok_access_token or "7d9422b0d7eaf09d8d34ff4d1c9295f4daef362d"
+    
+    if not tiktok_pixel or not tiktok_token:
         return {"skipped": True, "reason": "not_configured"}
 
     ph_hash = sha256(phone_e164)
@@ -122,7 +127,7 @@ async def send_tiktok_purchase(
 
     payload: dict[str, Any] = {
         "event_source": "web",
-        "event_source_id": settings.tiktok_pixel_id,
+        "event_source_id": tiktok_pixel,
         "data": [event_data],
     }
 
@@ -135,13 +140,15 @@ async def send_tiktok_purchase(
                 "https://business-api.tiktok.com/open_api/v1.3/event/track/",
                 json=payload,
                 headers={
-                    "Access-Token": settings.tiktok_access_token,
+                    "Access-Token": tiktok_token,
                     "Content-Type": "application/json",
                 },
             )
-            return {"status_code": resp.status_code, "body": resp.json()}
+            body = resp.json()
+            logger.info("TikTok CAPI Success: status=%s body=%s", resp.status_code, body)
+            return {"status_code": resp.status_code, "body": body}
     except Exception as e:
-        logger.error("TikTok Events API error: %s", str(e))
+        logger.error("TikTok Events API Error: %s", str(e))
         return {"error": str(e)}
 
 
@@ -199,9 +206,11 @@ async def send_snapchat_purchase(
                     "Content-Type": "application/json",
                 },
             )
-            return {"status_code": resp.status_code, "body": resp.json()}
+            body = resp.json()
+            logger.info("Snapchat CAPI Success: status=%s body=%s", resp.status_code, body)
+            return {"status_code": resp.status_code, "body": body}
     except Exception as e:
-        logger.error("Snapchat CAPI error: %s", str(e))
+        logger.error("Snapchat CAPI Error: %s", str(e))
         return {"error": str(e)}
 
 
