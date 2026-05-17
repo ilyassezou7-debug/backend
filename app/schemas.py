@@ -65,3 +65,18 @@ class OrderOut(BaseModel):
     status: str
     total: int
     currency: str
+
+
+class RedirectBase(BaseModel):
+    slug: str
+    target_url: str
+
+class RedirectCreate(RedirectBase):
+    pass
+
+class RedirectOut(RedirectBase):
+    id: str
+
+    class Config:
+        from_attributes = True
+
