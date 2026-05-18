@@ -2,9 +2,10 @@ from app.schemas import OrderItemIn, UpsellIn
 
 VALID_PRODUCTS = {"breath_drops", "foot_spray", "nail_serum"}
 OFFER_PRICES: dict[str, dict] = {
-    "one": {"unit_count": 1, "price": 199},
-    "two": {"unit_count": 2, "price": 279},
-    "three": {"unit_count": 3, "price": 349},
+    "one": {"unit_count": 1, "price": 292},
+    "two": {"unit_count": 2, "price": 359},
+    "three": {"unit_count": 3, "price": 426},
+    "cross_sell": {"unit_count": 1, "price": 149},
     "upsell_99": {"unit_count": 1, "price": 99},
 }
 
