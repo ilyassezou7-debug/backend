@@ -4,12 +4,13 @@ from sqlalchemy.future import select
 from app.db import get_db
 from app.models import Redirect
 from app.schemas import RedirectCreate, RedirectOut
-import os
+from app.config import get_settings
 
 router = APIRouter(prefix="/api/redirects")
+settings = get_settings()
 
 def verify_redirect_admin(authorization: str = Header(None)):
-    admin_pass = os.environ.get("REDIRECT_ADMIN_PASSWORD", "secret_redirect_pass")
+    admin_pass = settings.redirect_admin_password
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     token = authorization.split(" ")[1]

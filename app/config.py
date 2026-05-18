@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "changeme123"
     admin_secret_key: str = "change-this-to-a-random-64-char-secret"
+    
+    # Redirect Admin password
+    redirect_admin_password: str = "secret_redirect_pass"
 
     log_level: str = "INFO"
 
