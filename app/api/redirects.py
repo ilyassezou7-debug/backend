@@ -25,12 +25,14 @@ def verify_redirect_admin(authorization: str = Header(None)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     return True
 
-@router.get("/", response_model=list[RedirectOut])
+@router.get("")
+@router.get("/")
 async def list_redirects(db: AsyncSession = Depends(get_db), _: bool = Depends(verify_redirect_admin)):
     result = await db.execute(select(Redirect).order_by(Redirect.created_at.desc()))
     return result.scalars().all()
 
-@router.post("/", response_model=RedirectOut)
+@router.post("")
+@router.post("/")
 async def create_redirect(redirect_in: RedirectCreate, db: AsyncSession = Depends(get_db), _: bool = Depends(verify_redirect_admin)):
     result = await db.execute(select(Redirect).filter(Redirect.slug == redirect_in.slug))
     existing = result.scalars().first()
