@@ -16,24 +16,15 @@ async def setup_table():
         await conn.run_sync(Base.metadata.create_all)
     return {"message": "Table created successfully"}
 
-def verify_redirect_admin(authorization: str = Header(None)):
-    admin_pass = settings.redirect_admin_password
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    token = authorization.split(" ")[1]
-    if token != admin_pass:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
-    return True
-
 @router.get("")
 @router.get("/")
-async def list_redirects(db: AsyncSession = Depends(get_db), _: bool = Depends(verify_redirect_admin)):
+async def list_redirects(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Redirect).order_by(Redirect.created_at.desc()))
     return result.scalars().all()
 
 @router.post("")
 @router.post("/")
-async def create_redirect(redirect_in: RedirectCreate, db: AsyncSession = Depends(get_db), _: bool = Depends(verify_redirect_admin)):
+async def create_redirect(redirect_in: RedirectCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Redirect).filter(Redirect.slug == redirect_in.slug))
     existing = result.scalars().first()
     if existing:
@@ -46,7 +37,7 @@ async def create_redirect(redirect_in: RedirectCreate, db: AsyncSession = Depend
     return new_redirect
 
 @router.put("/{slug}", response_model=RedirectOut)
-async def update_redirect(slug: str, redirect_in: RedirectCreate, db: AsyncSession = Depends(get_db), _: bool = Depends(verify_redirect_admin)):
+async def update_redirect(slug: str, redirect_in: RedirectCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Redirect).filter(Redirect.slug == slug))
     redirect = result.scalars().first()
     if not redirect:
@@ -65,7 +56,7 @@ async def update_redirect(slug: str, redirect_in: RedirectCreate, db: AsyncSessi
     return redirect
 
 @router.delete("/{slug}")
-async def delete_redirect(slug: str, db: AsyncSession = Depends(get_db), _: bool = Depends(verify_redirect_admin)):
+async def delete_redirect(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Redirect).filter(Redirect.slug == slug))
     redirect = result.scalars().first()
     if not redirect:
