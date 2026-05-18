@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.db import get_db
-from app.models import Redirect
+from app.db import get_db, engine
+from app.models import Redirect, Base
 from app.schemas import RedirectCreate, RedirectOut
 from app.config import get_settings
 
 router = APIRouter(prefix="/api/redirects")
 settings = get_settings()
+
+@router.get("/setup-table")
+async def setup_table():
+    # This is a helper endpoint to create the table without needing terminal access
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    return {"message": "Table created successfully"}
 
 def verify_redirect_admin(authorization: str = Header(None)):
     admin_pass = settings.redirect_admin_password
