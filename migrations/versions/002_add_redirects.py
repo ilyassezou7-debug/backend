@@ -1,7 +1,7 @@
 """add redirects
 
 Revision ID: 002_add_redirects
-Revises: 001_initial_schema
+Revises: 001
 Create Date: 2026-05-17 23:00:00.000000
 
 """
