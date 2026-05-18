@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel, field_validator
 from typing import Any
 
@@ -75,7 +76,7 @@ class RedirectCreate(RedirectBase):
     pass
 
 class RedirectOut(RedirectBase):
-    id: str
+    id: uuid.UUID
 
     class Config:
         from_attributes = True
