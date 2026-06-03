@@ -128,10 +128,10 @@ async def create_order(
             main_qtes.append(str(qte_physical))
             main_names.append(name)
             
-    # Combine lists so main products are listed first, then upsells
-    final_skus = main_skus + upsell_skus
-    final_qtes = main_qtes + upsell_qtes
-    final_names = main_names + upsell_names
+    # Combine lists so main products are listed first, and upsells are ONLY in the note
+    final_skus = main_skus
+    final_qtes = main_qtes
+    final_names = main_names
     
     sku_str = "/".join(final_skus)
     quantity_str = "/".join(final_qtes)
