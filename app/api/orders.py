@@ -88,29 +88,63 @@ async def create_order(
     )
 
     # 8. Forward to Google Sheets
-    PRODUCT_MAPPING = {
-        "breath_drops": {"name": "قطرات القرنفل والنعناع", "sku": "BD-001"},
-        "foot_spray": {"name": "بخاخ الشبة وزيت شجرة الشاي", "sku": "FS-002"},
-        "nail_serum": {"name": "سيروم الثوم والخل", "sku": "NS-003"}
+    SKU_MAPPING = {
+        "breath_drops": "fresh-breath",
+        "nail_serum": "ongles",
+        "foot_spray": "foots-deodorizer"
     }
     
-    product_names_list = []
-    sku_list = []
-    quantity_list = []
+    PRODUCT_MAPPING = {
+        "breath_drops": {"name": "قطرات القرنفل والنعناع"},
+        "foot_spray": {"name": "بخاخ الشبة وزيت شجرة الشاي"},
+        "nail_serum": {"name": "سيروم الثوم والخل"}
+    }
+    
+    main_skus = []
+    main_qtes = []
+    main_names = []
+    
+    upsell_skus = []
+    upsell_qtes = []
+    upsell_names = []
+    upsell_info = None
     
     for item in validated_items:
-        p_info = PRODUCT_MAPPING.get(item["product_id"], {"name": item["product_id"], "sku": "UNKNOWN"})
-        product_names_list.append(p_info["name"])
-        sku_list.append(p_info["sku"])
-        quantity_list.append(str(item["quantity"]))
+        pid = item["product_id"]
+        sku = SKU_MAPPING.get(pid, pid)
+        name = PRODUCT_MAPPING.get(pid, {}).get("name", pid)
+        qte_physical = item["quantity"] * item.get("unit_count", 1)
         
-    product_names_str = "/".join(product_names_list)
-    sku_str = "/".join(sku_list)
-    quantity_str = "/".join(quantity_list)
+        if item.get("source") == "post_checkout_upsell":
+            upsell_skus.append(sku)
+            upsell_qtes.append(str(qte_physical))
+            upsell_names.append(name)
+            upsell_info = {
+                "sku": sku,
+                "price": item.get("price", 99)
+            }
+        else:
+            main_skus.append(sku)
+            main_qtes.append(str(qte_physical))
+            main_names.append(name)
+            
+    # Combine lists so main products are listed first, then upsells
+    final_skus = main_skus + upsell_skus
+    final_qtes = main_qtes + upsell_qtes
+    final_names = main_names + upsell_names
     
+    sku_str = "/".join(final_skus)
+    quantity_str = "/".join(final_qtes)
+    product_names_str = "/".join(final_names)
+    
+    note_str = ""
+    if upsell_info:
+        note_str = f"{upsell_info['sku']} hada up sell b {upsell_info['price']} dh"
+        
     phone_clean = phone_e164.replace("+", "")
     
     sheet_payload = {
+        # Old sheet fields (for backwards compatibility if they keep using their own sheet)
         "date": order.created_at.strftime("%d/%m/%Y"),
         "orderid": public_id,
         "country": "maroc",
@@ -122,6 +156,15 @@ async def create_order(
         "totale price": total,
         "curency": "MAD",
         "status": "",
+        
+        # New company sheet fields (matching the company's columns exactly)
+        "date_order": order.created_at.strftime("%d/%m/%Y"),
+        "full_name": order.full_name,
+        "address": "", # no address collected on checkout
+        "qte": quantity_str,
+        "price": total,
+        "note": note_str,
+        "delivery_note": tracking_data.get("page_url", "https://atlaspure.shop"),
         
         # Keep detailed info for debugging in the raw JSON payload if needed
         "detailed_items": validated_items,
