@@ -137,6 +137,32 @@ async def create_order(
     quantity_str = "/".join(final_qtes)
     product_names_str = "/".join(final_names)
     
+    # Map the primary product to its actual product URL slug
+    PRODUCT_SLUGS = {
+        "breath_drops": "breath-drops",
+        "foot_spray": "foots-deodorizer", # using its slug or ID
+        "nail_serum": "nails-serum" # using its slug or ID
+    }
+    
+    # We construct the exact product URL if we can detect the main product
+    primary_product_id = final_skus[0] if final_skus else "breath_drops"
+    # Find the key from the value in SKU_MAPPING to get original product_id
+    orig_pid = "breath_drops"
+    for k, v in SKU_MAPPING.items():
+        if v == primary_product_id:
+            orig_pid = k
+            break
+            
+    # Default to the page_url if something goes wrong, otherwise construct the direct product landing URL
+    product_slug = "breath-drops"
+    if orig_pid == "foot_spray":
+        product_slug = "foots-deodorizer"
+    elif orig_pid == "nail_serum":
+        product_slug = "nails-serum"
+        
+    frontend_base = settings.frontend_url or "https://atlaspure.shop"
+    direct_product_url = f"{frontend_base.rstrip('/')}/products/{product_slug}"
+    
     note_str = ""
     if upsell_info:
         note_str = f"{upsell_info['sku']} hada up sell b {upsell_info['price']} dh"
@@ -164,7 +190,7 @@ async def create_order(
         "qte": quantity_str,
         "price": total,
         "note": note_str,
-        "delivery_note": tracking_data.get("page_url", "https://atlaspure.shop"),
+        "delivery_note": direct_product_url,
         
         # Keep detailed info for debugging in the raw JSON payload if needed
         "detailed_items": validated_items,
