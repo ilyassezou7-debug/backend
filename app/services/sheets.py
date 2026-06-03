@@ -9,8 +9,8 @@ async def send_to_sheets(order: dict) -> bool:
     """Send order data to Google Sheets webhook. Returns True if successful."""
     settings = get_settings()
 
-    if not settings.google_sheets_webhook_url or not settings.google_sheets_webhook_secret:
-        logger.warning("Google Sheets webhook not configured, skipping")
+    if not settings.google_sheets_webhook_url:
+        logger.warning("Google Sheets webhook URL not configured, skipping")
         return False
 
     payload = {
