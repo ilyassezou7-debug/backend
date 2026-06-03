@@ -153,14 +153,16 @@ async def create_order(
             orig_pid = k
             break
             
+    settings = get_settings()
+    frontend_base = settings.frontend_url or "https://atlaspure.shop"
+    
     # Default to the page_url if something goes wrong, otherwise construct the direct product landing URL
     product_slug = "breath-drops"
     if orig_pid == "foot_spray":
-        product_slug = "foots-deodorizer"
+        product_slug = "foot-spray"
     elif orig_pid == "nail_serum":
-        product_slug = "nails-serum"
+        product_slug = "nail-serum"
         
-    frontend_base = settings.frontend_url or "https://atlaspure.shop"
     direct_product_url = f"{frontend_base.rstrip('/')}/products/{product_slug}"
     
     note_str = ""
