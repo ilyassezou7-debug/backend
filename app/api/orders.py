@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.db import get_db
+from app.config import get_settings
 from app.models import Order, ConversionEvent
 from app.schemas import OrderIn, OrderOut
 from app.services.phone import normalize_moroccan_phone
