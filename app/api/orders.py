@@ -28,59 +28,60 @@ async def create_order(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    # 1. Validate and normalize phone
     try:
-        phone_e164 = normalize_moroccan_phone(order_in.customer.phone)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        # 1. Validate and normalize phone
+        try:
+            phone_e164 = normalize_moroccan_phone(order_in.customer.phone)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
 
-    # 2. Recalculate pricing server-side
-    try:
-        subtotal, shipping, total, validated_items = recalculate_order(
-            order_in.items, order_in.upsell
+        # 2. Recalculate pricing server-side
+        try:
+            subtotal, shipping, total, validated_items = recalculate_order(
+                order_in.items, order_in.upsell
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+        # 3. Build tracking data with real client IP
+        forwarded_for = request.headers.get("x-forwarded-for", "")
+        client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else (
+            request.client.host if request.client else ""
         )
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        tracking_data = order_in.tracking.model_dump()
+        tracking_data["ip"] = client_ip
 
-    # 3. Build tracking data with real client IP
-    forwarded_for = request.headers.get("x-forwarded-for", "")
-    client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else (
-        request.client.host if request.client else ""
-    )
-    tracking_data = order_in.tracking.model_dump()
-    tracking_data["ip"] = client_ip
+        # 4. Extract UTM separately
+        utm_data = tracking_data.pop("utm", {}) or {}
 
-    # 4. Extract UTM separately
-    utm_data = tracking_data.pop("utm", {}) or {}
+        # 5. Upsell summary
+        upsell_data = order_in.upsell.model_dump()
 
-    # 5. Upsell summary
-    upsell_data = order_in.upsell.model_dump()
+        # 6. Generate IDs
+        order_id = uuid.uuid4()
+        public_id = generate_public_id()
 
-    # 6. Generate IDs
-    order_id = uuid.uuid4()
-    public_id = generate_public_id()
+        # 7. Persist order
+        order = Order(
+            id=order_id,
+            public_id=public_id,
+            full_name=order_in.customer.full_name.strip(),
+            phone_e164=phone_e164,
+            phone_raw=order_in.customer.phone,
+            status="new",
+            subtotal=subtotal,
+            shipping=shipping,
+            total=total,
+            currency="MAD",
+            items_json={"items": validated_items},
+            upsell_json=upsell_data,
+            tracking_json=tracking_data,
+            utm_json=utm_data,
+        )
 
-    # 7. Persist order
-    order = Order(
-        id=order_id,
-        public_id=public_id,
-        full_name=order_in.customer.full_name.strip(),
-        phone_e164=phone_e164,
-        phone_raw=order_in.customer.phone,
-        status="new",
-        subtotal=subtotal,
-        shipping=shipping,
-        total=total,
-        currency="MAD",
-        items_json={"items": validated_items},
-        upsell_json=upsell_data,
-        tracking_json=tracking_data,
-        utm_json=utm_data,
-    )
-
-    db.add(order)
-    await db.commit()
-    await db.refresh(order)
+        db.add(order)
+        await db.commit()
+        await db.refresh(order)
 
     logger.info(
         "Order created: %s (total=%s MAD, phone=%s***)",
@@ -248,6 +249,10 @@ async def create_order(
         total=total,
         currency="MAD",
     )
+    except Exception as e:
+        import traceback
+        logger.error("Exception in create_order: %s", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=traceback.format_exc())
 
 
 @router.get("/orders/{public_id}", response_model=OrderOut)
