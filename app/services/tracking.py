@@ -26,7 +26,8 @@ async def send_meta_purchase(
     tracking: dict,
 ) -> dict:
     settings = get_settings()
-    if not settings.meta_pixel_id or not settings.meta_access_token:
+    meta_pixel = settings.meta_pixel_id or "800384379801833"
+    if not meta_pixel or not settings.meta_access_token:
         return {"skipped": True, "reason": "not_configured"}
 
     ph_hash = sha256(phone_digits_country(phone_e164))
@@ -65,7 +66,7 @@ async def send_meta_purchase(
         payload["test_event_code"] = settings.meta_test_event_code
 
     url = (
-        f"https://graph.facebook.com/v19.0/{settings.meta_pixel_id}/events"
+        f"https://graph.facebook.com/v19.0/{meta_pixel}/events"
         f"?access_token={settings.meta_access_token}"
     )
 
