@@ -28,231 +28,226 @@ async def create_order(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    # 1. Validate and normalize phone
     try:
-        # 1. Validate and normalize phone
-        try:
-            phone_e164 = normalize_moroccan_phone(order_in.customer.phone)
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e))
+        phone_e164 = normalize_moroccan_phone(order_in.customer.phone)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
-        # 2. Recalculate pricing server-side
-        try:
-            subtotal, shipping, total, validated_items = recalculate_order(
-                order_in.items, order_in.upsell
-            )
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e))
-
-        # 3. Build tracking data with real client IP
-        forwarded_for = request.headers.get("x-forwarded-for", "")
-        client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else (
-            request.client.host if request.client else ""
+    # 2. Recalculate pricing server-side
+    try:
+        subtotal, shipping, total, validated_items = recalculate_order(
+            order_in.items, order_in.upsell
         )
-        tracking_data = order_in.tracking.model_dump()
-        tracking_data["ip"] = client_ip
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
-        # 4. Extract UTM separately
-        utm_data = tracking_data.pop("utm", {}) or {}
+    # 3. Build tracking data with real client IP
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    client_ip = forwarded_for.split(",")[0].strip() if forwarded_for else (
+        request.client.host if request.client else ""
+    )
+    tracking_data = order_in.tracking.model_dump()
+    tracking_data["ip"] = client_ip
 
-        # 5. Upsell summary
-        upsell_data = order_in.upsell.model_dump()
+    # 4. Extract UTM separately
+    utm_data = tracking_data.pop("utm", {}) or {}
 
-        # 6. Generate IDs
-        order_id = uuid.uuid4()
-        public_id = generate_public_id()
+    # 5. Upsell summary
+    upsell_data = order_in.upsell.model_dump()
 
-        # 7. Persist order
-        order = Order(
-            id=order_id,
-            public_id=public_id,
-            full_name=order_in.customer.full_name.strip(),
-            phone_e164=phone_e164,
-            phone_raw=order_in.customer.phone,
-            status="new",
-            subtotal=subtotal,
-            shipping=shipping,
-            total=total,
-            currency="MAD",
-            items_json={"items": validated_items},
-            upsell_json=upsell_data,
-            tracking_json=tracking_data,
-            utm_json=utm_data,
-        )
+    # 6. Generate IDs
+    order_id = uuid.uuid4()
+    public_id = generate_public_id()
 
-        db.add(order)
-        await db.commit()
-        await db.refresh(order)
+    # 7. Persist order
+    order = Order(
+        id=order_id,
+        public_id=public_id,
+        full_name=order_in.customer.full_name.strip(),
+        phone_e164=phone_e164,
+        phone_raw=order_in.customer.phone,
+        status="new",
+        subtotal=subtotal,
+        shipping=shipping,
+        total=total,
+        currency="MAD",
+        items_json={"items": validated_items},
+        upsell_json=upsell_data,
+        tracking_json=tracking_data,
+        utm_json=utm_data,
+    )
 
-        logger.info(
-            "Order created: %s (total=%s MAD, phone=%s***)",
-            public_id, total, phone_e164[:8],
-        )
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
 
-        # 8. Forward to Google Sheets
-        SKU_MAPPING = {
-            "breath_drops": "fresh-breath",
-            "nail_serum": "ongles",
-            "foot_spray": "foots-deodorizer"
-        }
-        
-        PRODUCT_MAPPING = {
-            "breath_drops": {"name": "قطرات القرنفل والنعناع"},
-            "foot_spray": {"name": "بخاخ الشبة وزيت شجرة الشاي"},
-            "nail_serum": {"name": "سيروم الثوم والخل"}
-        }
-        
-        main_skus = []
-        main_qtes = []
-        main_names = []
-        
-        upsell_skus = []
-        upsell_qtes = []
-        upsell_names = []
-        upsell_info = None
-        
-        for item in validated_items:
-            pid = item["product_id"]
-            sku = SKU_MAPPING.get(pid, pid)
-            name = PRODUCT_MAPPING.get(pid, {}).get("name", pid)
-            qte_physical = item["quantity"] * item.get("unit_count", 1)
-            
-            if item.get("source") == "post_checkout_upsell":
-                upsell_skus.append(sku)
-                upsell_qtes.append(str(qte_physical))
-                upsell_names.append(name)
-                upsell_info = {
-                    "sku": sku,
-                    "price": item.get("price", 99)
-                }
-            else:
-                main_skus.append(sku)
-                main_qtes.append(str(qte_physical))
-                main_names.append(name)
-                
-        # Combine lists so main products are listed first, and upsells are ONLY in the note
-        final_skus = main_skus
-        final_qtes = main_qtes
-        final_names = main_names
-        
-        sku_str = "/".join(final_skus)
-        quantity_str = "/".join(final_qtes)
-        product_names_str = "/".join(final_names)
-        
-        # Map the primary product to its actual product URL slug
-        PRODUCT_SLUGS = {
-            "breath_drops": "breath-drops",
-            "foot_spray": "foots-deodorizer", # using its slug or ID
-            "nail_serum": "nails-serum" # using its slug or ID
-        }
-        
-        # We construct the exact product URL if we can detect the main product
-        primary_product_id = final_skus[0] if final_skus else "breath_drops"
-        # Find the key from the value in SKU_MAPPING to get original product_id
-        orig_pid = "breath_drops"
-        for k, v in SKU_MAPPING.items():
-            if v == primary_product_id:
-                orig_pid = k
-                break
-                
-        settings = get_settings()
-        frontend_base = settings.frontend_url or "https://atlaspure.shop"
-        
-        # Default to the page_url if something goes wrong, otherwise construct the direct product landing URL
-        product_slug = "breath-drops"
-        if orig_pid == "foot_spray":
-            product_slug = "foot-spray"
-        elif orig_pid == "nail_serum":
-            product_slug = "nail-serum"
-            
-        direct_product_url = f"{frontend_base.rstrip('/')}/products/{product_slug}"
-        
-        note_str = ""
-        if upsell_info:
-            note_str = f"{upsell_info['sku']} hada up sell b {upsell_info['price']} dh"
-            
-        phone_clean = phone_e164.replace("+", "")
-        
-        sheet_payload = {
-            # Old sheet fields (for backwards compatibility if they keep using their own sheet)
-            "date": order.created_at.strftime("%d/%m/%Y"),
-            "orderid": public_id,
-            "country": "maroc",
-            "name": order.full_name,
-            "phone": phone_clean,
-            "product": product_names_str,
-            "sku": sku_str,
-            "quantity": quantity_str,
-            "totale price": total,
-            "curency": "MAD",
-            "status": "",
-            
-            # New company sheet fields (matching the company's columns exactly)
-            "date_order": order.created_at.strftime("%d/%m/%Y"),
-            "full_name": order.full_name,
-            "address": "", # no address collected on checkout
-            "qte": quantity_str,
-            "price": total,
-            "note": note_str,
-            "delivery_note": direct_product_url,
-            
-            # Keep detailed info for debugging in the raw JSON payload if needed
-            "detailed_items": validated_items,
-            "upsell": upsell_data,
-            "tracking": {**tracking_data, "utm": utm_data},
-        }
+    logger.info(
+        "Order created: %s (total=%s MAD, phone=%s***)",
+        public_id, total, phone_e164[:8],
+    )
 
-        sheet_ok = await send_to_sheets(sheet_payload)
-
-        if sheet_ok:
-            order.status = "sent_to_sheet"
-            order.sheet_sent_at = datetime.now(timezone.utc)
+    # 8. Forward to Google Sheets
+    SKU_MAPPING = {
+        "breath_drops": "fresh-breath",
+        "nail_serum": "ongles",
+        "foot_spray": "foots-deodorizer"
+    }
+    
+    PRODUCT_MAPPING = {
+        "breath_drops": {"name": "قطرات القرنفل والنعناع"},
+        "foot_spray": {"name": "بخاخ الشبة وزيت شجرة الشاي"},
+        "nail_serum": {"name": "سيروم الثوم والخل"}
+    }
+    
+    main_skus = []
+    main_qtes = []
+    main_names = []
+    
+    upsell_skus = []
+    upsell_qtes = []
+    upsell_names = []
+    upsell_info = None
+    
+    for item in validated_items:
+        pid = item["product_id"]
+        sku = SKU_MAPPING.get(pid, pid)
+        name = PRODUCT_MAPPING.get(pid, {}).get("name", pid)
+        qte_physical = item["quantity"] * item.get("unit_count", 1)
+        
+        if item.get("source") == "post_checkout_upsell":
+            upsell_skus.append(sku)
+            upsell_qtes.append(str(qte_physical))
+            upsell_names.append(name)
+            upsell_info = {
+                "sku": sku,
+                "price": item.get("price", 99)
+            }
         else:
-            order.status = "sheet_failed"
-            order.sheet_error = "Webhook failed or not configured"
+            main_skus.append(sku)
+            main_qtes.append(str(qte_physical))
+            main_names.append(name)
+            
+    # Combine lists so main products are listed first, and upsells are ONLY in the note
+    final_skus = main_skus
+    final_qtes = main_qtes
+    final_names = main_names
+    
+    sku_str = "/".join(final_skus)
+    quantity_str = "/".join(final_qtes)
+    product_names_str = "/".join(final_names)
+    
+    # Map the primary product to its actual product URL slug
+    PRODUCT_SLUGS = {
+        "breath_drops": "breath-drops",
+        "foot_spray": "foots-deodorizer", # using its slug or ID
+        "nail_serum": "nails-serum" # using its slug or ID
+    }
+    
+    # We construct the exact product URL if we can detect the main product
+    primary_product_id = final_skus[0] if final_skus else "breath_drops"
+    # Find the key from the value in SKU_MAPPING to get original product_id
+    orig_pid = "breath_drops"
+    for k, v in SKU_MAPPING.items():
+        if v == primary_product_id:
+            orig_pid = k
+            break
+            
+    settings = get_settings()
+    frontend_base = settings.frontend_url or "https://atlaspure.shop"
+    
+    # Default to the page_url if something goes wrong, otherwise construct the direct product landing URL
+    product_slug = "breath-drops"
+    if orig_pid == "foot_spray":
+        product_slug = "foot-spray"
+    elif orig_pid == "nail_serum":
+        product_slug = "nail-serum"
+        
+    direct_product_url = f"{frontend_base.rstrip('/')}/products/{product_slug}"
+    
+    note_str = ""
+    if upsell_info:
+        note_str = f"{upsell_info['sku']} hada up sell b {upsell_info['price']} dh"
+        
+    phone_clean = phone_e164.replace("+", "")
+    
+    sheet_payload = {
+        # Old sheet fields (for backwards compatibility if they keep using their own sheet)
+        "date": order.created_at.strftime("%d/%m/%Y"),
+        "orderid": public_id,
+        "country": "maroc",
+        "name": order.full_name,
+        "phone": phone_clean,
+        "product": product_names_str,
+        "sku": sku_str,
+        "quantity": quantity_str,
+        "totale price": total,
+        "curency": "MAD",
+        "status": "",
+        
+        # New company sheet fields (matching the company's columns exactly)
+        "date_order": order.created_at.strftime("%d/%m/%Y"),
+        "full_name": order.full_name,
+        "address": "", # no address collected on checkout
+        "qte": quantity_str,
+        "price": total,
+        "note": note_str,
+        "delivery_note": direct_product_url,
+        
+        # Keep detailed info for debugging in the raw JSON payload if needed
+        "detailed_items": validated_items,
+        "upsell": upsell_data,
+        "tracking": {**tracking_data, "utm": utm_data},
+    }
 
-        await db.commit()
+    sheet_ok = await send_to_sheets(sheet_payload)
 
-        # 9. Fire CAPI (non-blocking on failure)
-        event_id = order_in.tracking.event_id
-        try:
-            capi_results = await tracking_service.fire_purchase_capi(
-                order_id=str(order_id),
-                event_id=event_id,
-                phone_e164=phone_e164,
-                total=total,
-                items=validated_items,
-                tracking={**tracking_data, "utm": utm_data},
-            )
+    if sheet_ok:
+        order.status = "sent_to_sheet"
+        order.sheet_sent_at = datetime.now(timezone.utc)
+    else:
+        order.status = "sheet_failed"
+        order.sheet_error = "Webhook failed or not configured"
 
-            for platform, result in capi_results.items():
-                if result.get("skipped"):
-                    continue
-                ce = ConversionEvent(
-                    order_id=order_id,
-                    event_name="Purchase",
-                    event_id=event_id,
-                    platform=platform,
-                    payload_json=result,
-                    response_json=result,
-                    status_code=result.get("status_code"),
-                    success=result.get("status_code") in (200, 201),
-                )
-                db.add(ce)
-            await db.commit()
-        except Exception as e:
-            logger.error("CAPI error for order %s: %s", public_id, str(e))
+    await db.commit()
 
-        return OrderOut(
+    # 9. Fire CAPI (non-blocking on failure)
+    event_id = order_in.tracking.event_id
+    try:
+        capi_results = await tracking_service.fire_purchase_capi(
             order_id=str(order_id),
-            public_id=public_id,
-            status=order.status,
+            event_id=event_id,
+            phone_e164=phone_e164,
             total=total,
-            currency="MAD",
+            items=validated_items,
+            tracking={**tracking_data, "utm": utm_data},
         )
+
+        for platform, result in capi_results.items():
+            if result.get("skipped"):
+                continue
+            ce = ConversionEvent(
+                order_id=order_id,
+                event_name="Purchase",
+                event_id=event_id,
+                platform=platform,
+                payload_json=result,
+                response_json=result,
+                status_code=result.get("status_code"),
+                success=result.get("status_code") in (200, 201),
+            )
+            db.add(ce)
+        await db.commit()
     except Exception as e:
-        import traceback
-        logger.error("Exception in create_order: %s", traceback.format_exc())
-        raise HTTPException(status_code=500, detail=traceback.format_exc())
+        logger.error("CAPI error for order %s: %s", public_id, str(e))
+
+    return OrderOut(
+        order_id=str(order_id),
+        public_id=public_id,
+        status=order.status,
+        total=total,
+        currency="MAD",
+    )
 
 
 @router.get("/orders/{public_id}", response_model=OrderOut)
