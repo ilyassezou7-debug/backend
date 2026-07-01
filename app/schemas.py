@@ -1,3 +1,4 @@
+import re
 import uuid
 from pydantic import BaseModel, field_validator
 from typing import Any
@@ -68,9 +69,34 @@ class OrderOut(BaseModel):
     currency: str
 
 
+SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
 class RedirectBase(BaseModel):
     slug: str
     target_url: str
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not v:
+            raise ValueError("Slug is required")
+        if not SLUG_RE.match(v):
+            raise ValueError(
+                "Slug must be URL-safe: lowercase letters, numbers and single "
+                "dashes only (e.g. breath-drops, argan-oil)"
+            )
+        return v
+
+    @field_validator("target_url")
+    @classmethod
+    def validate_target_url(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Target URL is required")
+        return v
+
 
 class RedirectCreate(RedirectBase):
     pass
