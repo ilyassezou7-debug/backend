@@ -1,13 +1,49 @@
 from app.schemas import OrderItemIn, UpsellIn
 
-VALID_PRODUCTS = {"breath_drops", "foot_spray", "nail_serum"}
-OFFER_PRICES: dict[str, dict] = {
+VALID_PRODUCTS = {
+    "breath_drops",
+    "foot_spray",
+    "nail_serum",
+    "hair_serum",
+    "joint_capsules",
+}
+
+# Default per-bundle pricing used by the original product line.
+DEFAULT_OFFER_PRICES: dict[str, dict] = {
     "one": {"unit_count": 1, "price": 292},
     "two": {"unit_count": 2, "price": 359},
     "three": {"unit_count": 3, "price": 426},
     "cross_sell": {"unit_count": 1, "price": 149},
     "upsell_99": {"unit_count": 1, "price": 99},
 }
+
+# Per-product overrides for products that have their own pricing.
+# Only the main offers (one/two/three) differ; cross_sell / upsell_99 fall
+# back to the shared defaults above.
+PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
+    "hair_serum": {
+        "one": {"unit_count": 1, "price": 249},
+        "two": {"unit_count": 2, "price": 299},
+        "three": {"unit_count": 3, "price": 349},
+    },
+    "joint_capsules": {
+        "one": {"unit_count": 1, "price": 249},
+        "two": {"unit_count": 2, "price": 299},
+        "three": {"unit_count": 3, "price": 349},
+    },
+}
+
+
+def get_offer(product_id: str, offer_id: str) -> dict | None:
+    """Resolve an offer's authoritative price for a given product.
+
+    Product-specific pricing takes priority; otherwise the shared default
+    table is used. Returns None if the offer is unknown for this product.
+    """
+    overrides = PRODUCT_OFFER_PRICES.get(product_id, {})
+    if offer_id in overrides:
+        return overrides[offer_id]
+    return DEFAULT_OFFER_PRICES.get(offer_id)
 
 
 def recalculate_order(
@@ -25,7 +61,8 @@ def recalculate_order(
         if item.product_id not in VALID_PRODUCTS:
             raise ValueError(f"منتج غير معروف: {item.product_id}")
 
-        if item.offer_id not in OFFER_PRICES:
+        offer = get_offer(item.product_id, item.offer_id)
+        if offer is None:
             raise ValueError(f"عرض غير معروف: {item.offer_id}")
 
         if item.offer_id == "upsell_99":
@@ -35,7 +72,6 @@ def recalculate_order(
             if item.source != "post_checkout_upsell":
                 raise ValueError("العرض الإضافي غير صالح")
 
-        offer = OFFER_PRICES[item.offer_id]
         server_price = offer["price"] * item.quantity
         subtotal += server_price
 

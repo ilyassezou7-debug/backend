@@ -92,18 +92,32 @@ async def create_order(
     SKU_MAPPING = {
         "breath_drops": "fresh-breath",
         "nail_serum": "ongles",
-        "foot_spray": "foots-deodorizer"
+        "foot_spray": "foots-deodorizer",
+        "hair_serum": "huil-anti-chute",
+        "joint_capsules": "articulaire-comp30",
     }
     
     PRODUCT_MAPPING = {
         "breath_drops": {"name": "قطرات القرنفل والنعناع"},
         "foot_spray": {"name": "بخاخ الشبة وزيت شجرة الشاي"},
-        "nail_serum": {"name": "سيروم الثوم والخل"}
+        "nail_serum": {"name": "سيروم الثوم والخل"},
+        "hair_serum": {"name": "سيروم الروزماري والخروع"},
+        "joint_capsules": {"name": "كبسولات الكركم والجلوكوزامين"},
+    }
+
+    # Maps each product to its public page slug (used for the delivery_note URL).
+    PRODUCT_SLUGS = {
+        "breath_drops": "breath-drops",
+        "foot_spray": "foot-spray",
+        "nail_serum": "nail-serum",
+        "hair_serum": "hair-serum",
+        "joint_capsules": "joint-capsules",
     }
     
     main_skus = []
     main_qtes = []
     main_names = []
+    main_pids = []
     
     upsell_skus = []
     upsell_qtes = []
@@ -128,6 +142,7 @@ async def create_order(
             main_skus.append(sku)
             main_qtes.append(str(qte_physical))
             main_names.append(name)
+            main_pids.append(pid)
             
     # Combine lists so main products are listed first, and upsells are ONLY in the note
     final_skus = main_skus
@@ -138,32 +153,12 @@ async def create_order(
     quantity_str = "/".join(final_qtes)
     product_names_str = "/".join(final_names)
     
-    # Map the primary product to its actual product URL slug
-    PRODUCT_SLUGS = {
-        "breath_drops": "breath-drops",
-        "foot_spray": "foots-deodorizer", # using its slug or ID
-        "nail_serum": "nails-serum" # using its slug or ID
-    }
-    
-    # We construct the exact product URL if we can detect the main product
-    primary_product_id = final_skus[0] if final_skus else "breath_drops"
-    # Find the key from the value in SKU_MAPPING to get original product_id
-    orig_pid = "breath_drops"
-    for k, v in SKU_MAPPING.items():
-        if v == primary_product_id:
-            orig_pid = k
-            break
-            
     settings = get_settings()
     frontend_base = settings.frontend_url or "https://atlaspure.shop"
     
-    # Default to the page_url if something goes wrong, otherwise construct the direct product landing URL
-    product_slug = "breath-drops"
-    if orig_pid == "foot_spray":
-        product_slug = "foot-spray"
-    elif orig_pid == "nail_serum":
-        product_slug = "nail-serum"
-        
+    # Build the direct product landing URL from the primary (first) main product.
+    primary_pid = main_pids[0] if main_pids else "breath_drops"
+    product_slug = PRODUCT_SLUGS.get(primary_pid, "breath-drops")
     direct_product_url = f"{frontend_base.rstrip('/')}/products/{product_slug}"
     
     note_str = ""
