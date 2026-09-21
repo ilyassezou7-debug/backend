@@ -95,6 +95,7 @@ async def create_order(
         "foot_spray": "foots-deodorizer",
         "hair_serum": "huil-anti-chute",
         "joint_capsules": "articulaire-comp30",
+        "melasma_cream": "creme-melasma",
     }
     
     PRODUCT_MAPPING = {
@@ -103,6 +104,7 @@ async def create_order(
         "nail_serum": {"name": "سيروم الثوم والخل"},
         "hair_serum": {"name": "سيروم الروزماري والخروع"},
         "joint_capsules": {"name": "كبسولات الكركم والجلوكوزامين"},
+        "melasma_cream": {"name": "كريم الكلف"},
     }
 
     # Maps each product to its public page slug (used for the delivery_note URL).
@@ -112,6 +114,10 @@ async def create_order(
         "nail_serum": "nail-serum",
         "hair_serum": "hair-serum",
         "joint_capsules": "joint-capsules",
+    }
+    # Products sold only through an /lp/ page (no /products/<slug> page).
+    PRODUCT_URL_OVERRIDES = {
+        "melasma_cream": "/lp/kalaf",
     }
     
     main_skus = []
@@ -159,7 +165,9 @@ async def create_order(
     # Build the direct product landing URL from the primary (first) main product.
     primary_pid = main_pids[0] if main_pids else "breath_drops"
     product_slug = PRODUCT_SLUGS.get(primary_pid, "breath-drops")
-    direct_product_url = f"{frontend_base.rstrip('/')}/products/{product_slug}"
+    direct_product_url = f"{frontend_base.rstrip('/')}" + PRODUCT_URL_OVERRIDES.get(
+        primary_pid, f"/products/{product_slug}"
+    )
     
     note_str = ""
     if upsell_info:

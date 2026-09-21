@@ -6,6 +6,7 @@ VALID_PRODUCTS = {
     "nail_serum",
     "hair_serum",
     "joint_capsules",
+    "melasma_cream",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -30,6 +31,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 249},
         "two": {"unit_count": 2, "price": 299},
         "three": {"unit_count": 3, "price": 349},
+    },
+    # Landing page /lp/kalaf (image-only). Keep in sync with KalafLandingClient OFFERS.
+    "melasma_cream": {
+        "one": {"unit_count": 1, "price": 199},
+        "two": {"unit_count": 2, "price": 329},
+        "three": {"unit_count": 3, "price": 449},
     },
 }
 
