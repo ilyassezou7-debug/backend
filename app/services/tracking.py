@@ -28,6 +28,7 @@ async def send_meta_purchase(
     settings = get_settings()
     meta_pixel = settings.meta_pixel_id or "800384379801833"
     if not meta_pixel or not settings.meta_access_token:
+        logger.warning("Meta CAPI skipped: META_ACCESS_TOKEN is not set on the server")
         return {"skipped": True, "reason": "not_configured"}
 
     ph_hash = sha256(phone_digits_country(phone_e164))
@@ -65,16 +66,18 @@ async def send_meta_purchase(
     if settings.meta_test_event_code:
         payload["test_event_code"] = settings.meta_test_event_code
 
-    url = (
-        f"https://graph.facebook.com/v19.0/{meta_pixel}/events"
-        f"?access_token={settings.meta_access_token}"
-    )
+    # Token goes in the POST body, not the URL: httpx logs every request URL at INFO, which printed the token.
+    url = f"https://graph.facebook.com/v19.0/{meta_pixel}/events"
+    payload["access_token"] = settings.meta_access_token
 
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.post(url, json=payload)
             body = resp.json()
-            logger.info("Meta CAPI Success: status=%s body=%s", resp.status_code, body)
+            if resp.status_code == 200:
+                logger.info("Meta CAPI Success: status=%s body=%s", resp.status_code, body)
+            else:
+                logger.error("Meta CAPI rejected: status=%s body=%s", resp.status_code, body)
             return {"status_code": resp.status_code, "body": body}
     except Exception as e:
         logger.error("Meta CAPI Error: %s", str(e))
