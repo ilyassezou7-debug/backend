@@ -96,7 +96,7 @@ async def create_order(
         "hair_serum": "huil-anti-chute",
         "joint_capsules": "articulaire-comp30",
         "melasma_cream": "creme-melasma",
-        "vitiligo_cream": "vitiligotube",
+        "vitiligo_cream": "vitiligo",
     }
     
     PRODUCT_MAPPING = {
