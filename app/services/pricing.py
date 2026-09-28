@@ -41,9 +41,9 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
     },
     # /products/vitiligo-cream. Keep in sync with the frontend config/products.ts offers.
     "vitiligo_cream": {
-        "one": {"unit_count": 1, "price": 199},
-        "two": {"unit_count": 2, "price": 329},
-        "three": {"unit_count": 3, "price": 449},
+        "one": {"unit_count": 1, "price": 219},
+        "two": {"unit_count": 2, "price": 359},
+        "three": {"unit_count": 3, "price": 479},
     },
 }
 
