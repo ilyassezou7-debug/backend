@@ -96,6 +96,7 @@ async def create_order(
         "hair_serum": "huil-anti-chute",
         "joint_capsules": "articulaire-comp30",
         "melasma_cream": "creme-melasma",
+        "vitiligo_cream": "vitiligotube",
     }
     
     PRODUCT_MAPPING = {
@@ -105,6 +106,7 @@ async def create_order(
         "hair_serum": {"name": "سيروم الروزماري والخروع"},
         "joint_capsules": {"name": "كبسولات الكركم والجلوكوزامين"},
         "melasma_cream": {"name": "كريم الكلف"},
+        "vitiligo_cream": {"name": "كريم البرص والبهاق"},
     }
 
     # Maps each product to its public page slug (used for the delivery_note URL).
@@ -114,6 +116,7 @@ async def create_order(
         "nail_serum": "nail-serum",
         "hair_serum": "hair-serum",
         "joint_capsules": "joint-capsules",
+        "vitiligo_cream": "vitiligo-cream",
     }
     # Products sold only through an /lp/ page (no /products/<slug> page).
     PRODUCT_URL_OVERRIDES = {

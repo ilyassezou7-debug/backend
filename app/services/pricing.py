@@ -7,6 +7,7 @@ VALID_PRODUCTS = {
     "hair_serum",
     "joint_capsules",
     "melasma_cream",
+    "vitiligo_cream",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -34,6 +35,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
     },
     # Landing page /lp/kalaf (image-only). Keep in sync with KalafLandingClient OFFERS.
     "melasma_cream": {
+        "one": {"unit_count": 1, "price": 199},
+        "two": {"unit_count": 2, "price": 329},
+        "three": {"unit_count": 3, "price": 449},
+    },
+    # /products/vitiligo-cream. Keep in sync with the frontend config/products.ts offers.
+    "vitiligo_cream": {
         "one": {"unit_count": 1, "price": 199},
         "two": {"unit_count": 2, "price": 329},
         "three": {"unit_count": 3, "price": 449},
