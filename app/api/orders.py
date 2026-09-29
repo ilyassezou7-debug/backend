@@ -1,11 +1,11 @@
 import uuid
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.db import get_db
+from app.db import get_db, AsyncSessionLocal
 from app.config import get_settings
 from app.models import Order, ConversionEvent
 from app.schemas import OrderIn, OrderOut
@@ -23,10 +23,46 @@ def generate_public_id() -> str:
     return f"AP-{today}-{str(uuid.uuid4())[:8].upper()}"
 
 
+async def _after_order(order_id, public_id, sheet_payload, event_id, phone_e164, total, validated_items, tracking):
+    """Runs after the response: forward to Google Sheets, record the result, fire server-side Purchase events."""
+    async with AsyncSessionLocal() as db:
+        order = await db.get(Order, order_id)
+        try:
+            sheet_ok = await send_to_sheets(sheet_payload)
+        except Exception as e:
+            logger.error("Sheets error for order %s: %s", public_id, str(e))
+            sheet_ok = False
+        if order is not None:
+            if sheet_ok:
+                order.status = "sent_to_sheet"
+                order.sheet_sent_at = datetime.now(timezone.utc)
+            else:
+                order.status = "sheet_failed"
+                order.sheet_error = "Webhook failed or not configured"
+            await db.commit()
+        try:
+            capi_results = await tracking_service.fire_purchase_capi(
+                order_id=str(order_id), event_id=event_id, phone_e164=phone_e164, total=total,
+                items=validated_items, tracking=tracking,
+            )
+            for platform, result in capi_results.items():
+                if result.get("skipped"):
+                    continue
+                db.add(ConversionEvent(
+                    order_id=order_id, event_name="Purchase", event_id=event_id, platform=platform,
+                    payload_json=result, response_json=result, status_code=result.get("status_code"),
+                    success=result.get("status_code") in (200, 201),
+                ))
+            await db.commit()
+        except Exception as e:
+            logger.error("CAPI error for order %s: %s", public_id, str(e))
+
+
 @router.post("/orders", response_model=OrderOut)
 async def create_order(
     order_in: OrderIn,
     request: Request,
+    background: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     # 1. Validate and normalize phone
@@ -207,46 +243,12 @@ async def create_order(
         "tracking": {**tracking_data, "utm": utm_data},
     }
 
-    sheet_ok = await send_to_sheets(sheet_payload)
-
-    if sheet_ok:
-        order.status = "sent_to_sheet"
-        order.sheet_sent_at = datetime.now(timezone.utc)
-    else:
-        order.status = "sheet_failed"
-        order.sheet_error = "Webhook failed or not configured"
-
-    await db.commit()
-
-    # 9. Fire CAPI (non-blocking on failure)
-    event_id = order_in.tracking.event_id
-    try:
-        capi_results = await tracking_service.fire_purchase_capi(
-            order_id=str(order_id),
-            event_id=event_id,
-            phone_e164=phone_e164,
-            total=total,
-            items=validated_items,
-            tracking={**tracking_data, "utm": utm_data},
-        )
-
-        for platform, result in capi_results.items():
-            if result.get("skipped"):
-                continue
-            ce = ConversionEvent(
-                order_id=order_id,
-                event_name="Purchase",
-                event_id=event_id,
-                platform=platform,
-                payload_json=result,
-                response_json=result,
-                status_code=result.get("status_code"),
-                success=result.get("status_code") in (200, 201),
-            )
-            db.add(ce)
-        await db.commit()
-    except Exception as e:
-        logger.error("CAPI error for order %s: %s", public_id, str(e))
+    # 8b/9. Google Sheet + CAPI run AFTER the response (BackgroundTasks): the order is already committed above, so the
+    # customer no longer waits 2-5 s for Apps Script + Meta + TikTok before reaching the thank-you page.
+    background.add_task(
+        _after_order, order_id, public_id, sheet_payload, order_in.tracking.event_id, phone_e164, total,
+        validated_items, {**tracking_data, "utm": utm_data},
+    )
 
     return OrderOut(
         order_id=str(order_id),
