@@ -32,6 +32,10 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 249},
         "two": {"unit_count": 2, "price": 299},
         "three": {"unit_count": 3, "price": 349},
+        # Static pages /lp/joint, /lp/joint-2, /lp/joint-3, /lp/joint-4. Keep in sync with their OFFERS.
+        "lp_one": {"unit_count": 1, "price": 199},
+        "lp_two": {"unit_count": 2, "price": 249},
+        "lp_three": {"unit_count": 3, "price": 329},
     },
     # Landing page /lp/kalaf (image-only). Keep in sync with KalafLandingClient OFFERS.
     "melasma_cream": {
