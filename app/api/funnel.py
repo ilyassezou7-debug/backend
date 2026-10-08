@@ -9,10 +9,11 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import text
 
 from app.db import engine
+from app.api.admin import require_admin
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ev")
@@ -86,6 +87,10 @@ STEPS = ["view", "s25", "s50", "s75", "s100", "cta", "offer", "nm_in", "ph_in", 
 async def funnel(key: str = Query(""), hours: float = Query(24, ge=0.1, le=24 * 30)):
     """Distinct visitors reaching each step, per page, plus error breakdowns and time on page."""
     _check(key)
+    return await _funnel_data(hours)
+
+
+async def _funnel_data(hours: float) -> dict:
     await _ensure_table()
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
     async with engine.connect() as conn:
@@ -105,7 +110,7 @@ async def funnel(key: str = Query(""), hours: float = Query(24, ge=0.1, le=24 * 
     for page, med, _n in secs:
         out.setdefault(page, {"steps": {}, "details": {}, "median_seconds_on_page": None})["median_seconds_on_page"] = round(med or 0, 1)
     for p in out.values():
-        p["steps"] = {k: p["steps"][k] for k in STEPS + sorted(set(p["steps"]) - set(STEPS)) if k in p["steps"]}
+        p["steps"] = {k: p["steps"][k] for k in STEPS + sorted(set(p["steps"]) - set(STEPS) - {"hb"}) if k in p["steps"]}
     return {"since": since.isoformat(), "pages": out}
 
 
@@ -128,3 +133,20 @@ async def sessions(key: str = Query(""), page: str = Query(""), hours: float = Q
         s = out.setdefault(sid, {"page": pg, "steps": []})
         s["steps"].append(f"{(ms or 0) / 1000:.0f}s {ev}" + (f" ({data})" if data else ""))
     return list(out.values())
+
+
+# ── Admin page (/admin/visitors): same data behind the store admin login ──────────────────────
+admin_router = APIRouter(prefix="/api/admin/visitors", tags=["admin"])
+LIVE_SECONDS = 75  # the page sends a heartbeat every 30 s while it is open and visible
+
+
+@admin_router.get("")
+async def admin_visitors(hours: float = Query(24, ge=0.1, le=24 * 30), _: str = Depends(require_admin)):
+    data = await _funnel_data(hours)
+    since_live = datetime.now(timezone.utc) - timedelta(seconds=LIVE_SECONDS)
+    async with engine.connect() as conn:
+        rows = (await conn.execute(text(
+            "SELECT page, COUNT(*) FROM (SELECT DISTINCT ON (sid) sid, page, ev FROM lp_events WHERE ts >= :s "
+            "ORDER BY sid, id DESC) last WHERE ev <> 'leave' GROUP BY page ORDER BY 2 DESC"), {"s": since_live})).all()
+    data["live"] = {"total": sum(n for _, n in rows), "pages": {p: n for p, n in rows}, "window_seconds": LIVE_SECONDS}
+    return data

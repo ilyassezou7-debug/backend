@@ -8,7 +8,7 @@ from app.api.health import router as health_router
 from app.api.orders import router as orders_router
 from app.api.admin import router as admin_router
 from app.api.redirects import router as redirects_router
-from app.api.funnel import router as funnel_router
+from app.api.funnel import router as funnel_router, admin_router as visitors_router
 
 settings = get_settings()
 
@@ -44,3 +44,4 @@ app.include_router(orders_router)
 app.include_router(admin_router)
 app.include_router(redirects_router)
 app.include_router(funnel_router)
+app.include_router(visitors_router)
