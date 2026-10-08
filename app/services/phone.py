@@ -1,5 +1,7 @@
 import re
 
+_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
 DUMMY_PATTERNS = [
     re.compile(r"^(\d)\1{7,}$"),  # e.g. 00000000, 11111111
 ]
@@ -7,7 +9,13 @@ DUMMY_PATTERNS = [
 
 def normalize_moroccan_phone(raw: str) -> str:
     """Normalize to E.164 +212XXXXXXXXX. Raises ValueError on invalid input."""
-    cleaned = re.sub(r"[\s\-\(\)\.]", "", raw)
+    # Arabic-Indic and Persian digits (Arabic keyboards) -> 0-9; direction marks pasted from contacts are dropped
+    raw = raw.translate(_DIGITS)
+    cleaned = re.sub(r"[\s\-\(\)\.\u200e\u200f]", "", raw)
+    if cleaned.startswith("00212"):
+        cleaned = "+" + cleaned[2:]
+    if re.match(r"^[67]\d{8}$", cleaned):
+        cleaned = "0" + cleaned
 
     if cleaned.startswith("+212"):
         normalized = cleaned
