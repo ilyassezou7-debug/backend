@@ -132,6 +132,7 @@ async def create_order(
         "hair_serum": "huil-anti-chute",
         "joint_capsules": "articulaire-comp30",
         "melasma_cream": "creme-melasma",
+        "grohair_serum": "grohair_whitepack",
         "vitiligo_cream": "vitiligo",
     }
     
@@ -142,6 +143,7 @@ async def create_order(
         "hair_serum": {"name": "سيروم الروزماري والخروع"},
         "joint_capsules": {"name": "كبسولات الكركم والجلوكوزامين"},
         "melasma_cream": {"name": "كريم الكلف"},
+        "grohair_serum": {"name": "سيروم نمو الشعر (Sérum de croissance)"},
         "vitiligo_cream": {"name": "كريم البرص والبهاق"},
     }
 
@@ -157,6 +159,7 @@ async def create_order(
     # Products sold only through an /lp/ page (no /products/<slug> page).
     PRODUCT_URL_OVERRIDES = {
         "melasma_cream": "/lp/kalaf",
+        "grohair_serum": "/lp/serum-cheveux",
     }
     
     main_skus = []

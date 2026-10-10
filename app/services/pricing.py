@@ -7,6 +7,7 @@ VALID_PRODUCTS = {
     "hair_serum",
     "joint_capsules",
     "melasma_cream",
+    "grohair_serum",
     "vitiligo_cream",
 }
 
@@ -36,6 +37,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "lp_one": {"unit_count": 1, "price": 199},
         "lp_two": {"unit_count": 2, "price": 249},
         "lp_three": {"unit_count": 3, "price": 329},
+    },
+    # /lp/serum-cheveux (French hair growth serum, SKU grohair_whitepack). Keep in sync with the page OFFERS.
+    "grohair_serum": {
+        "one": {"unit_count": 1, "price": 219},
+        "two": {"unit_count": 2, "price": 359},
+        "three": {"unit_count": 3, "price": 479},
     },
     # Landing page /lp/kalaf (image-only). Keep in sync with KalafLandingClient OFFERS.
     "melasma_cream": {
