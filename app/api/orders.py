@@ -133,6 +133,7 @@ async def create_order(
         "joint_capsules": "articulaire-comp30",
         "melasma_cream": "creme-melasma",
         "grohair_serum": "grohair_whitepack",
+        "sink_black": "evier-noir-6545",
         "vitiligo_cream": "vitiligo",
     }
     
@@ -144,6 +145,7 @@ async def create_order(
         "joint_capsules": {"name": "كبسولات الكركم والجلوكوزامين"},
         "melasma_cream": {"name": "كريم الكلف"},
         "grohair_serum": {"name": "سيروم نمو الشعر (Sérum de croissance)"},
+        "sink_black": {"name": "لافابو إينوكس أسود 65×45 (باك كامل)"},
         "vitiligo_cream": {"name": "كريم البرص والبهاق"},
     }
 
@@ -160,6 +162,7 @@ async def create_order(
     PRODUCT_URL_OVERRIDES = {
         "melasma_cream": "/lp/kalaf",
         "grohair_serum": "/lp/serum-cheveux",
+        "sink_black": "/lp/lavabo",
     }
     
     main_skus = []

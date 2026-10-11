@@ -8,6 +8,7 @@ VALID_PRODUCTS = {
     "joint_capsules",
     "melasma_cream",
     "grohair_serum",
+    "sink_black",
     "vitiligo_cream",
 }
 
@@ -43,6 +44,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 219},
         "two": {"unit_count": 2, "price": 359},
         "three": {"unit_count": 3, "price": 479},
+    },
+    # /lp/lavabo (black inox kitchen sink 65x45, full pack). Keep in sync with the page OFFERS.
+    "sink_black": {
+        "one": {"unit_count": 1, "price": 799},
+        "two": {"unit_count": 2, "price": 1499},
+        "three": {"unit_count": 3, "price": 2199},
     },
     # Landing page /lp/kalaf (image-only). Keep in sync with KalafLandingClient OFFERS.
     "melasma_cream": {
