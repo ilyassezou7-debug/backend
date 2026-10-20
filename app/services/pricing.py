@@ -10,6 +10,7 @@ VALID_PRODUCTS = {
     "grohair_serum",
     "sink_black",
     "vitiligo_cream",
+    "moringa_capsules",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -50,6 +51,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 799},
         "two": {"unit_count": 2, "price": 1499},
         "three": {"unit_count": 3, "price": 2199},
+    },
+    # /lp/moringa (French, Atlas Pure MORINGA capsules). Keep in sync with the page OFFERS.
+    "moringa_capsules": {
+        "one": {"unit_count": 1, "price": 239},
+        "two": {"unit_count": 2, "price": 299},
+        "three": {"unit_count": 3, "price": 339},
     },
     # Landing page /lp/kalaf (image-only). Keep in sync with KalafLandingClient OFFERS.
     "melasma_cream": {
