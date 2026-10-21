@@ -136,7 +136,7 @@ async def create_order(
         "sink_black": "evier-noir-6545",
         "vitiligo_cream": "vitiligo",
         "moringa_capsules": "moringa",
-        "kids_gummies": "gummies-kids",
+        "kids_gummies": "gumies-vitamine",
     }
     
     PRODUCT_MAPPING = {
