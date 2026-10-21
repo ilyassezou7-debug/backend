@@ -11,6 +11,7 @@ VALID_PRODUCTS = {
     "sink_black",
     "vitiligo_cream",
     "moringa_capsules",
+    "kids_gummies",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -51,6 +52,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 799},
         "two": {"unit_count": 2, "price": 1499},
         "three": {"unit_count": 3, "price": 2199},
+    },
+    # /lp/gummies (Darija, Atlas Pure multivitamin gummies for children): 1 box, 2+1 and 3+2. Keep in sync with the page OFFERS.
+    "kids_gummies": {
+        "one": {"unit_count": 1, "price": 199},
+        "two": {"unit_count": 3, "price": 299},
+        "three": {"unit_count": 5, "price": 399},
     },
     # /lp/moringa (French, Atlas Pure MORINGA capsules). Keep in sync with the page OFFERS.
     "moringa_capsules": {
