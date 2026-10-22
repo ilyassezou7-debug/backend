@@ -12,6 +12,7 @@ VALID_PRODUCTS = {
     "vitiligo_cream",
     "moringa_capsules",
     "kids_gummies",
+    "gummies_collagen",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -52,6 +53,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 799},
         "two": {"unit_count": 2, "price": 1499},
         "three": {"unit_count": 3, "price": 2199},
+    },
+    # /lp/collagen (Darija, Atlas Pure collagen gummies). Keep in sync with the page OFFERS.
+    "gummies_collagen": {
+        "one": {"unit_count": 1, "price": 239},
+        "two": {"unit_count": 2, "price": 299},
+        "three": {"unit_count": 3, "price": 349},
     },
     # /lp/gummies (Darija, Atlas Pure multivitamin gummies for children): 1, 2 and 3 boxes. Keep in sync with the page OFFERS.
     "kids_gummies": {

@@ -137,6 +137,7 @@ async def create_order(
         "vitiligo_cream": "vitiligo",
         "moringa_capsules": "moringa",
         "kids_gummies": "gumies-vitamine",
+        "gummies_collagen": "gummies_collagen",
     }
     
     PRODUCT_MAPPING = {
@@ -151,6 +152,7 @@ async def create_order(
         "vitiligo_cream": {"name": "كريم البرص والبهاق"},
         "moringa_capsules": {"name": "Atlas Pure Moringa (كبسولات المورينغا)"},
         "kids_gummies": {"name": "علكات الفيتامينات للأطفال (Multivitamines Gummies)"},
+        "gummies_collagen": {"name": "علكات الكولاجين (Collagène Gummies)"},
     }
 
     # Maps each product to its public page slug (used for the delivery_note URL).
@@ -169,6 +171,7 @@ async def create_order(
         "sink_black": "/lp/lavabo",
         "moringa_capsules": "/lp/moringa",
         "kids_gummies": "/lp/gummies",
+        "gummies_collagen": "/lp/collagen",
     }
     
     main_skus = []
