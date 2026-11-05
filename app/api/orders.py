@@ -138,7 +138,7 @@ async def create_order(
         "moringa_capsules": "moringa",
         "kids_gummies": "gumies-vitamine",
         "gummies_collagen": "gummies_collagen",
-        "sinuvox_capsules": "sinuvox",
+        "sinuvox_capsules": "propolis",
     }
     
     PRODUCT_MAPPING = {
