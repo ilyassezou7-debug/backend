@@ -13,6 +13,7 @@ VALID_PRODUCTS = {
     "moringa_capsules",
     "kids_gummies",
     "gummies_collagen",
+    "sinuvox_capsules",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -53,6 +54,11 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 799},
         "two": {"unit_count": 2, "price": 1499},
         "three": {"unit_count": 3, "price": 2199},
+    },
+    # /lp/sinuvox (Darija, SINUVOX sinus capsules): 1 box 219, "2 + 1 free" = 3 boxes 329. Keep in sync with the page OFFERS.
+    "sinuvox_capsules": {
+        "one": {"unit_count": 1, "price": 219},
+        "two": {"unit_count": 3, "price": 329},
     },
     # /lp/collagen (Darija, Atlas Pure collagen gummies). Keep in sync with the page OFFERS.
     "gummies_collagen": {
