@@ -14,6 +14,7 @@ VALID_PRODUCTS = {
     "kids_gummies",
     "gummies_collagen",
     "sinuvox_capsules",
+    "esorepair_drops",
 }
 
 # Default per-bundle pricing used by the original product line.
@@ -54,6 +55,12 @@ PRODUCT_OFFER_PRICES: dict[str, dict[str, dict]] = {
         "one": {"unit_count": 1, "price": 799},
         "two": {"unit_count": 2, "price": 1499},
         "three": {"unit_count": 3, "price": 2199},
+    },
+    # /lp/esorepair (Darija, NanoRevive EsoRepair throat drops 60 ml): 1/2/3 bottles. Keep in sync with the page OFFERS.
+    "esorepair_drops": {
+        "one": {"unit_count": 1, "price": 219},
+        "two": {"unit_count": 2, "price": 299},
+        "three": {"unit_count": 3, "price": 349},
     },
     # /lp/sinuvox (Darija, SINUVOX sinus capsules): 1 box 219, "2 + 1 free" = 3 boxes 329. Keep in sync with the page OFFERS.
     "sinuvox_capsules": {

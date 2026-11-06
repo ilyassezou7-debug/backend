@@ -139,6 +139,7 @@ async def create_order(
         "kids_gummies": "gumies-vitamine",
         "gummies_collagen": "gummies_collagen",
         "sinuvox_capsules": "propolis",
+        "esorepair_drops": "lung-detox",
     }
     
     PRODUCT_MAPPING = {
@@ -155,6 +156,7 @@ async def create_order(
         "kids_gummies": {"name": "علكات الفيتامينات للأطفال (Multivitamines Gummies)"},
         "gummies_collagen": {"name": "علكات الكولاجين (Collagène Gummies)"},
         "sinuvox_capsules": {"name": "كبسولات Sinuvox للجيوب الأنفية"},
+        "esorepair_drops": {"name": "سيروم EsoRepair للحلق والبلغم"},
     }
 
     # Maps each product to its public page slug (used for the delivery_note URL).
@@ -175,6 +177,7 @@ async def create_order(
         "kids_gummies": "/lp/gummies",
         "gummies_collagen": "/lp/collagen",
         "sinuvox_capsules": "/lp/sinuvox",
+        "esorepair_drops": "/lp/esorepair",
     }
     
     main_skus = []
